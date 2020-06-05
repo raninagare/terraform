@@ -18,7 +18,7 @@ resource "aws_ebs_volume" "volume1" {
 }
 
 resource "aws_instance" "machine1" {
-    ami           = "ami-04b9e92b5572fa0d1"
+    ami           = "ami-0b91a410940e82c54"
     instance_type = "t2.micro"
     availability_zone = "us-west-1a"    
 }
