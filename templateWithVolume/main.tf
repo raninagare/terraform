@@ -13,12 +13,12 @@ resource "aws_volume_attachment" "ebs_att" {
   instance_id = "${aws_instance.machine1.id}"
 }
 resource "aws_ebs_volume" "volume1" {
-  availability_zone = "us-west-2a"
+  availability_zone = "us-west-1a"
   size              = 1
 }
 
 resource "aws_instance" "machine1" {
     ami           = "ami-04b9e92b5572fa0d1"
     instance_type = "t2.micro"
-    availability_zone = "us-west-2a"    
+    availability_zone = "us-west-1a"    
 }
