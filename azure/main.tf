@@ -1,79 +1,102 @@
-resource "azurerm_resource_group" "example" {
-  name     = "example-resources"
-  location = "West US"
+# Azure Subscription Id
+#variable "azure-subscription-id" {
+#    type        = string
+#    description = "Azure Subscription Id"
+#}
+# Azure Client Id/appId
+#variable "azure-client-id" {
+#    type        = string
+#    description = "Azure Client Id/appId"
+#}
+# Azure Client Id/appId
+#variable "azure-client-secret" {
+#    type        = string
+#    description = "Azure Client Id/appId"
+#}
+# Azure Tenant Id
+#variable "azure-tenant-id" {
+#    type        = string
+#    description = "Azure Tenant Id"
+#}
+
+provider "azurerm" { 
+#    subscription_id = var.azure-subscription-id
+#    client_id       = var.azure-client-id
+#    client_secret   = var.azure-client-secret 
+#    tenant_id       = var.azure-tenant-id
+    version = "=2.0.0"
+    features {}
 }
 
-resource "azurerm_template_deployment" "example" {
-  name                = "acctesttemplate-01"
-  resource_group_name = azurerm_resource_group.example.name
+variable "prefix" {
+  default = "vmware-gadagip-test"
+}
 
-  template_body = <<DEPLOY
-{
-  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
-  "contentVersion": "1.0.0.0",
-  "parameters": {
-    "storageAccountType": {
-      "type": "string",
-      "defaultValue": "Standard_LRS",
-      "allowedValues": [
-        "Standard_LRS",
-        "Standard_GRS",
-        "Standard_ZRS"
-      ],
-      "metadata": {
-        "description": "Storage Account type"
-      }
-    }
-  },
-  "variables": {
-    "location": "[resourceGroup().location]",
-    "storageAccountName": "[concat(uniquestring(resourceGroup().id), 'storage')]",
-    "publicIPAddressName": "[concat('myPublicIp', uniquestring(resourceGroup().id))]",
-    "publicIPAddressType": "Dynamic",
-    "apiVersion": "2015-06-15",
-    "dnsLabelPrefix": "terraform-acctest"
-  },
-  "resources": [
-    {
-      "type": "Microsoft.Storage/storageAccounts",
-      "name": "[variables('storageAccountName')]",
-      "apiVersion": "[variables('apiVersion')]",
-      "location": "[variables('location')]",
-      "properties": {
-        "accountType": "[parameters('storageAccountType')]"
-      }
-    },
-    {
-      "type": "Microsoft.Network/publicIPAddresses",
-      "apiVersion": "[variables('apiVersion')]",
-      "name": "[variables('publicIPAddressName')]",
-      "location": "[variables('location')]",
-      "properties": {
-        "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
-        "dnsSettings": {
-          "domainNameLabel": "[variables('dnsLabelPrefix')]"
-        }
-      }
-    }
-  ],
-  "outputs": {
-    "storageAccountName": {
-      "type": "string",
-      "value": "[variables('storageAccountName')]"
-    }
+resource "azurerm_resource_group" "main" {
+  name     = "${var.prefix}-resources"
+  location = "East US"
+}
+
+resource "azurerm_virtual_network" "main" {
+  name                = "${var.prefix}-network"
+  address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+}
+
+resource "azurerm_subnet" "internal" {
+  name                 = "internal"
+  resource_group_name  = azurerm_resource_group.main.name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefix       = "10.0.2.0/24"
+}
+
+resource "azurerm_network_interface" "main" {
+  name                = "${var.prefix}-nic"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+
+  ip_configuration {
+    name                          = "testconfiguration1"
+    subnet_id                     = azurerm_subnet.internal.id
+    private_ip_address_allocation = "Dynamic"
   }
 }
-DEPLOY
 
+resource "azurerm_virtual_machine" "main" {
+  name                  = "${var.prefix}-vm"
+  location              = azurerm_resource_group.main.location
+  resource_group_name   = azurerm_resource_group.main.name
+  network_interface_ids = [azurerm_network_interface.main.id]
+  vm_size               = "Standard_DS1_v2"
 
-  # these key-value pairs are passed into the ARM Template's `parameters` block
-  parameters = {
-    "storageAccountType" = "Standard_GRS"
+  # Uncomment this line to delete the OS disk automatically when deleting the VM
+  delete_os_disk_on_termination = true
+
+  # Uncomment this line to delete the data disks automatically when deleting the VM
+  delete_data_disks_on_termination = true
+
+  storage_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
   }
-
-  deployment_mode = "Incremental"
-}
-
-output "storageAccountName" {
-  value = azurerm_template_deployment.example.outputs["storageAccountName"]
+  storage_os_disk {
+    name              = "myosdisk1"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Standard_LRS"
+  }
+  os_profile {
+    computer_name  = "hostname"
+    admin_username = "testadmin"
+    admin_password = "Password1234!"
+  }
+  os_profile_linux_config {
+    disable_password_authentication = false
+  }
+  tags = {
+    environment = "dev"
+  }
 }
