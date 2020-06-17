@@ -1,5 +1,5 @@
 provider "google" {
-  #credentials = file("account.json")
+#  credentials = file("account.json")
   project     = "abx-service-for-tango"
   region      = "asia-east1"
   zone        = "asia-east1-a"
