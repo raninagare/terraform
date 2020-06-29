@@ -5,8 +5,12 @@ provider "google" {
   zone        = "asia-east1-a"
 }
 
+variable "prefix" {
+  default = "vmware-gadagip-test"
+}
+
 resource "google_compute_instance" "vm_instance" {
-  name         = "gadagip-terraform-instance"
+  name         = "${var.prefix}-instance"
   machine_type = "f1-micro"
 
   boot_disk {
