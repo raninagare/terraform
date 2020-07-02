@@ -28,7 +28,7 @@ data "vsphere_virtual_machine" "template" {
 }
 
 resource "vsphere_virtual_machine" "cloned_virtual_machine" {
-  name             = "terraform-test-gadagip"
+  name             = "terraform-test-rani"
   resource_pool_id = data.vsphere_resource_pool.pool.id
   datastore_id     = data.vsphere_datastore.datastore.id
 
