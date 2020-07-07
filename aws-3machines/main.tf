@@ -38,3 +38,4 @@ resource "aws_instance" "machine3" {
         department = var.department
     }
 }
+    }
